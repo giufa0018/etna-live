@@ -367,3 +367,8 @@ details.sub{margin-top:6px}
 }
 
 .chip.fire{background:#8a4a3a;box-shadow:none}
+
+/* pulsante di condivisione */
+#share-btn svg{flex:none;opacity:.85}
+#share-btn:hover svg{opacity:1}
+@media (max-width:860px){ #share-label{display:none} #share-btn{padding:7px 10px} }

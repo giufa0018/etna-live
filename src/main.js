@@ -1,5 +1,5 @@
 // Orchestratore: mette insieme mappa, fonti dati, pannelli e aggiornamenti.
-import { SUMMIT, CRATERS, REFRESH_MIN } from './config.js';
+import { SUMMIT, CRATERS, REFRESH_MIN, SITE_URL } from './config.js';
 import { sunPosition, sunTimes, romeNow, pad2, isoDate, cumulativeLengths, sliceLine } from './util.js';
 import { createMap, sceneFromConditions, applyScene, flyPreset, startOrbit, makeMarker } from './map.js';
 import { DEM } from './dem.js';
@@ -560,6 +560,7 @@ function wireControls() {
   }));
 
   $('refresh-btn').addEventListener('click', () => { runAll(); UI.toast('Aggiornamento in corso…', 1600); });
+  $('share-btn').addEventListener('click', condividi);
 
   document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('active', x === t));
@@ -607,6 +608,56 @@ function wireControls() {
     },
     () => {}, { timeout: 8000, maximumAge: 600000 }
   );
+}
+
+// ------------------------------------------------------------- condivisione
+
+/**
+ * Link alla vista corrente. MapLibre tiene zoom, centro, rotazione e
+ * inclinazione nell'hash, quindi chi apre il link vede esattamente la stessa
+ * inquadratura. Da localhost si condivide l'indirizzo pubblico: un link a
+ * localhost non lo aprirebbe nessuno.
+ */
+function linkCondivisibile() {
+  const locale = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+  return locale ? SITE_URL.replace(/\/?$/, '/') + location.hash : location.href;
+}
+
+/** Riassunto dello stato attuale, così il link dice già qualcosa. */
+function testoCondivisione() {
+  const e = state.erupt;
+  const best = state.scored[0];
+  if (e.level >= 2) {
+    const b = state.vents[0];
+    const dove = best ? ` Ora si vede meglio da ${best.name}.` : '';
+    return `Etna: ${e.name}, ${state.vents.length} bocche attive` +
+      (b?.elevation ? ` (la principale a ${b.elevation} m)` : '') + `.${dove}`;
+  }
+  if (e.level === 1) return 'Etna: punti caldi al cratere, nessuna colata in corso.';
+  return best
+    ? `Etna in quiete. Ora la resa migliore è da ${best.name}.`
+    : 'Etna Live: mappa 3D con lava, sismicità e meteo in tempo reale.';
+}
+
+async function condividi() {
+  const url = linkCondivisibile();
+  const dati = { title: 'Etna Live', text: testoCondivisione(), url };
+
+  // Sul telefono apre il pannello di condivisione del sistema.
+  if (navigator.share) {
+    try { await navigator.share(dati); return; }
+    catch (err) {
+      if (err?.name === 'AbortError') return;   // l'utente ha annullato
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    UI.toast('Link copiato: porta alla vista che stai guardando.');
+  } catch {
+    // Contesti senza clipboard (http non sicuro): si mostra il link da copiare.
+    window.prompt('Copia il link:', url);
+  }
 }
 
 // ------------------------------------------------------------- GPX

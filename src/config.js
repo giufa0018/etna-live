@@ -36,6 +36,11 @@ export const VIEWPOINTS = [
   { name: 'Catania — Piazza Duomo',  lon: 15.0873, lat: 37.5024, ele: 20,   side: 'Sud',   note: 'Città: si vede in fondo a via Etnea nelle giornate limpide.' }
 ];
 
+// Indirizzo pubblico del sito. Serve al pulsante di condivisione: da
+// localhost un link a localhost non lo aprirebbe nessuno, quindi si
+// condivide questo, conservando la posizione della camera.
+export const SITE_URL = 'https://giufa0018.github.io/etna-live/';
+
 // Limiti della scena. Fuori di qui non si va: il soggetto è il vulcano, e
 // lasciar vagare la camera per la Sicilia significa solo scaricare tile che
 // non interessano a nessuno. Il riquadro è più largo del cono perché con la
