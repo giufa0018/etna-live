@@ -1,0 +1,15 @@
+# Segreti: la chiave FIRMS non deve mai finire nel repository
+.env
+.env.*
+!.env.example
+
+# Dipendenze e artefatti di deploy
+node_modules/
+.vercel/
+.wrangler/
+dist/
+
+# Sistema ed editor
+.DS_Store
+Thumbs.db
+*.log

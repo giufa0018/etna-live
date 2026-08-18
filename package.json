@@ -1,0 +1,12 @@
+{
+  "name": "etna-live",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mappa 3D dell'Etna con lava, sismicita, meteo reale, sentieri e punti panoramici.",
+  "scripts": {
+    "dev": "node dev-proxy.mjs",
+    "start": "node dev-proxy.mjs"
+  },
+  "engines": { "node": ">=18" }
+}

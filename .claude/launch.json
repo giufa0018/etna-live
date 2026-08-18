@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "etna-live",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["dev-proxy.mjs"],
+      "port": 5173
+    }
+  ]
+}

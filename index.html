@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Etna Live — mappa 3D, attività e visibilità in tempo reale</title>
+<meta name="description" content="Mappa 3D dell'Etna con anomalie termiche, sismicità INGV, meteo reale, sentieri e punti panoramici. Si aggiorna da sola." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌋</text></svg>" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<div id="map" aria-label="Mappa 3D dell'Etna"></div>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div id="vignette" aria-hidden="true"></div>
+
+<header id="topbar">
+  <div class="brand">
+    <span class="logo">🌋</span>
+    <div>
+      <h1>Etna <em>Live</em></h1>
+      <p id="subtitle">caricamento dati…</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <div id="clock" class="pill" title="Ora locale sull'Etna"></div>
+    <button id="refresh-btn" class="pill btn" title="Aggiorna adesso">
+      <span class="dot" id="live-dot"></span><span id="countdown">--:--</span>
+    </button>
+  </div>
+</header>
+
+<button id="handle-left" class="handle hl" aria-label="Apri livelli e scena" aria-expanded="false" aria-controls="left">
+  <span class="chev"></span><em>Livelli</em>
+</button>
+<button id="handle-right" class="handle hr" aria-label="Apri i dati" aria-expanded="false" aria-controls="right">
+  <span class="chev"></span><em>Dati</em>
+</button>
+
+<aside id="left">
+  <details class="card" open data-sec="livelli">
+    <summary><h2>Livelli</h2></summary>
+    <div class="layers">
+      <label class="sw"><input type="checkbox" id="l-thermal"><span></span>Anomalie termiche / lava</label>
+      <label class="sw"><input type="checkbox" id="l-quakes"><span></span>Sismicità INGV</label>
+      <label class="sw"><input type="checkbox" id="l-lava" checked><span></span>Colate simulate sul rilievo</label>
+      <label class="sw"><input type="checkbox" id="l-vents" checked><span></span>Bocche attive</label>
+      <label class="sw"><input type="checkbox" id="l-plume"><span></span>Pennacchio animato (vento reale)</label>
+      <label class="sw"><input type="checkbox" id="l-trails" checked><span></span>Sentieri</label>
+      <label class="sw"><input type="checkbox" id="l-views"><span></span>Punti panoramici</label>
+      <label class="sw"><input type="checkbox" id="l-poi"><span></span>Grotte, rifugi, alberi…</label>
+      <label class="sw"><input type="checkbox" id="l-craters"><span></span>Crateri sommitali</label>
+      <label class="sw"><input type="checkbox" id="l-gibs"><span></span>Satellite giornaliero (NASA)</label>
+    </div>
+  </details>
+
+  <details class="card" open data-sec="scena">
+    <summary><h2>Scena</h2></summary>
+    <label class="rng">Base
+      <select id="basemap">
+        <option value="sat">Satellite</option>
+        <option value="topo">Topografica</option>
+        <option value="dark">Rilievo scuro</option>
+      </select>
+    </label>
+    <label class="rng">Rilievo 3D <input type="range" id="exag" min="1" max="3" step="0.1" value="1.5"><output id="exag-out">1.5×</output></label>
+    <label class="sw"><input type="checkbox" id="l-weatherfx" checked><span></span>Animazioni meteo reali</label>
+    <label class="sw"><input type="checkbox" id="l-autolight" checked><span></span>Luce dal sole reale</label>
+    <div class="row-btns">
+      <button class="mini" data-fly="summit">Cratere</button>
+      <button class="mini" data-fly="orbit">Orbita</button>
+      <button class="mini" data-fly="wide">Panoramica</button>
+    </div>
+  </details>
+
+  <details class="card" data-sec="percorsi">
+    <summary><h2>I tuoi percorsi</h2></summary>
+    <p class="muted small">Carica un GPX: viene disegnato sul rilievo 3D con dislivello e lunghezza.</p>
+    <label class="filebtn">
+      <input type="file" id="gpx-input" accept=".gpx,application/gpx+xml" multiple hidden>
+      <span>＋ Carica GPX</span>
+    </label>
+    <ul id="gpx-list" class="tracklist"></ul>
+  </details>
+</aside>
+
+<aside id="right">
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="activity" role="tab">Attività</button>
+    <button class="tab" data-tab="views" role="tab">Dove vederla</button>
+    <button class="tab" data-tab="weather" role="tab">Meteo</button>
+    <button class="tab" data-tab="info" role="tab">Info</button>
+  </nav>
+
+  <div class="tabpanes">
+    <section class="pane active" id="pane-activity">
+      <div id="eruption-banner" class="erupt lvl0">
+        <span class="pulse"></span>
+        <div><b id="erupt-name">in attesa di dati</b><i id="erupt-note"></i></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><span class="k">Punti caldi vulcanici 24h</span><b id="s-thermal">–</b><i id="s-thermal-sub"></i></div>
+        <div class="stat"><span class="k">Terremoti 24h</span><b id="s-quakes">–</b><i id="s-quakes-sub"></i></div>
+        <div class="stat"><span class="k">Mag. massima 24h</span><b id="s-mag">–</b><i id="s-mag-sub"></i></div>
+        <div class="stat"><span class="k">Indice attività</span><b id="s-index">–</b><i id="s-index-sub"></i></div>
+      </div>
+      <details id="vents-box" class="sub" open>
+        <summary><h3>Bocche attive</h3></summary>
+        <ul id="vents-list" class="list"></ul>
+        <p class="muted small src-note">Le bocche sono ricavate raggruppando i punti caldi del satellite. I percorsi delle colate sono calcolati sul rilievo reale: mostrano dove la lava scorrerebbe per pendenza, non una colata osservata.</p>
+      </details>
+
+      <details class="sub" open>
+        <summary><h3>Ultimi eventi sismici</h3></summary>
+        <ul id="quake-list" class="list"></ul>
+      </details>
+      <div id="thermal-setup" class="notice hidden"></div>
+    </section>
+
+    <section class="pane" id="pane-views">
+      <p id="views-intro" class="muted small">Classifica calcolata ora su nuvolosità, visibilità e distanza.</p>
+      <ul id="views-list" class="list views"></ul>
+    </section>
+
+    <section class="pane" id="pane-weather">
+      <div id="weather-now"></div>
+      <h3>Prossime 24 ore in vetta</h3>
+      <div id="weather-chart"></div>
+      <h3>Sole</h3>
+      <div id="sun-info" class="kv"></div>
+    </section>
+
+    <section class="pane" id="pane-info">
+      <div id="info-sources"></div>
+    </section>
+  </div>
+</aside>
+
+<div id="legend" class="card">
+  <div class="lg"><span class="chip hot"></span>lava / punto caldo vulcanico</div>
+  <div class="lg"><span class="chip fire"></span>probabile incendio</div>
+  <div class="lg"><span class="chip q"></span>terremoto (raggio = magnitudo)</div>
+  <div class="lg"><span class="chip tr"></span>sentiero</div>
+  <div class="lg"><span class="chip vw"></span>punto panoramico</div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
