@@ -10,24 +10,29 @@ import { SOURCES, BBOX, SUMMIT } from '../config.js';
 import { distance } from '../util.js';
 
 export async function fetchThermal(days = 2) {
-  const url = `${SOURCES.firmsProxy}?days=${days}&bbox=${BBOX.join(',')}`;
-  let res;
-  try {
-    res = await fetch(url, { signal: AbortSignal.timeout(25000) });
-  } catch {
-    return { status: 'unconfigured', fc: empty(), reason: 'proxy irraggiungibile' };
+  const proxy = `${SOURCES.firmsProxy}?days=${days}&bbox=${BBOX.join(',')}`;
+  let data = await tryFetch(proxy);
+  let via = 'proxy';
+
+  // Su GitHub Pages il proxy non esiste; in locale può esserci ma senza
+  // chiave. In entrambi i casi si ripiega sul file che GitHub Actions
+  // deposita nel repository ogni quarto d'ora. L'errore del proxy si
+  // riferisce solo se anche il file manca: altrimenti i dati ci sono
+  // comunque e non c'è nulla da segnalare.
+  if (!data || data.error) {
+    const statico = await tryFetch(SOURCES.firmsStatic);
+    if (statico && !statico.error) {
+      data = statico;
+      via = 'file statico';
+    }
   }
 
-  if (res.status === 404 || res.status === 501) {
-    return { status: 'unconfigured', fc: empty(), reason: await serverMessage(res) || 'proxy non installato' };
+  if (!data) {
+    return { status: 'unconfigured', fc: empty(), reason: 'né proxy né dati statici disponibili' };
   }
-  if (!res.ok) {
-    return { status: 'error', fc: empty(), reason: await serverMessage(res) || `HTTP ${res.status}` };
+  if (data.error) {
+    return { status: 'unconfigured', fc: empty(), reason: data.error };
   }
-
-  let data;
-  try { data = await res.json(); }
-  catch { return { status: 'unconfigured', fc: empty(), reason: 'risposta non JSON' }; }
 
   const feats = (data.features || []).map((f) => {
     const [lon, lat] = f.geometry.coordinates;
@@ -43,7 +48,28 @@ export async function fetchThermal(days = 2) {
     };
   });
 
-  return { status: 'ok', fc: { type: 'FeatureCollection', features: feats } };
+  return {
+    status: 'ok',
+    via,
+    // Il file statico può avere qualche minuto di ritardo: vale la pena saperlo.
+    generated: data.generated ?? null,
+    fc: { type: 'FeatureCollection', features: feats }
+  };
+}
+
+/** Scarica e decodifica, restituendo null se la risorsa non c'è. */
+async function tryFetch(url) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(25000) });
+    if (res.status === 404 || res.status === 501) {
+      const msg = await serverMessage(res);
+      return msg ? { error: msg } : null;
+    }
+    if (!res.ok) return { error: await serverMessage(res) || `HTTP ${res.status}` };
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 // Raggio entro cui un punto caldo è plausibilmente vulcanico. Più in là, sui

@@ -1,0 +1,46 @@
+# Aggiorna i punti caldi NASA FIRMS e li deposita in data/firms.json.
+#
+# GitHub Pages serve solo file statici: senza questo, la pagina pubblicata
+# non avrebbe modo di ottenere i dati termici, perché FIRMS non consente
+# chiamate dirette dal browser e su Pages non gira alcun proxy.
+
+name: Aggiorna dati FIRMS
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # ogni quarto d'ora (GitHub può ritardare l'esecuzione)
+  workflow_dispatch:          # avviabile a mano dalla scheda Actions
+
+concurrency:
+  group: firms
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Scarica da FIRMS
+        env:
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+        run: node scripts/fetch-firms.mjs
+
+      - name: Pubblica se è cambiato qualcosa
+        run: |
+          if [ -n "$(git status --porcelain data/)" ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/firms.json
+            git commit -m "Dati FIRMS aggiornati automaticamente"
+            git push
+          else
+            echo "Niente da pubblicare."
+          fi

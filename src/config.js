@@ -77,10 +77,14 @@ export const SOURCES = {
     'https://overpass.kumi.systems/api/interpreter',
     'https://overpass.private.coffee/api/interpreter'
   ],
-  // Proxy per NASA FIRMS. FIRMS non espone CORS, quindi la chiamata passa
-  // da una piccola funzione serverless che tiene la chiave lato server.
-  // Vedi api/firms.js (Vercel), worker.js (Cloudflare) o dev-proxy.mjs (locale).
-  firmsProxy: '/api/firms'
+  // Punti caldi FIRMS, due strade in ordine di preferenza:
+  //  1. il proxy serverless, che interroga FIRMS in diretta (locale, Vercel,
+  //     Cloudflare) e tiene la chiave lato server;
+  //  2. un file statico depositato da GitHub Actions ogni quarto d'ora, che
+  //     è l'unico modo di avere i dati su GitHub Pages, dove non gira nulla.
+  // I percorsi sono relativi perché su Pages il sito vive in una sottocartella.
+  firmsProxy: 'api/firms',
+  firmsStatic: 'data/firms.json'
 };
 
 export const ATTRIBUTION =
