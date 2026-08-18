@@ -6,9 +6,14 @@ cui guardarla e come arrivarci. Nessun framework, nessun passo di build: sono
 file statici più una funzione serverless da venti righe.
 
 ```bash
+git clone https://github.com/<utente>/etna-live.git
+cd etna-live
 node dev-proxy.mjs
 # → http://localhost:5173
 ```
+
+Nessuna dipendenza da installare: `npm install` non serve, il progetto non ne ha.
+Serve solo Node 18 o superiore.
 
 Serve un server perché la pagina usa i moduli ES: aprendo `index.html` con
 `file://` il browser blocca gli import.
@@ -181,3 +186,25 @@ toccare `REFRESH_MIN`. Le tracce GPX si trascinano direttamente sulla pagina.
 OpenStreetMap (ODbL) · Esri World Imagery (termini Esri) · NASA FIRMS e GIBS
 (pubblico dominio, con attribuzione) · INGV (CC BY 4.0) · Open-Meteo (CC BY 4.0)
 · Terrain Tiles (fonti miste, vedi il registro AWS Open Data).
+
+## Contribuire
+
+Il progetto non ha build né dipendenze: si modifica un file, si ricarica la
+pagina. Le cose più facili da migliorare:
+
+- **Punti di osservazione** — una riga in `VIEWPOINTS` dentro `src/config.js`.
+  Coordinate, quota, versante e una nota su come ci si arriva.
+- **Soglie dell'attività** — `eruptionLevel()` in `src/lava.js`. Sono tarate a
+  occhio su una fase eruttiva: se le trovi sbagliate, discutiamone in una issue.
+- **Simulazione delle colate** — `descentPath()` in `src/dem.js`. Oggi è
+  discesa ripida più riempimento delle conche; tiene conto della pendenza ma
+  non della viscosità né dell'autoarginamento.
+
+Se apri una pull request, di' quale delle tre categorie tocchi — misurato,
+derivato o simulato. È la distinzione su cui si regge l'onestà della pagina.
+
+## Nota sull'accuratezza
+
+Questa pagina è divulgativa. Non è uno strumento di monitoraggio e non
+sostituisce i bollettini dell'INGV — Osservatorio Etneo né le indicazioni della
+Protezione Civile. Se stai decidendo se salire sull'Etna, guarda quelli.
