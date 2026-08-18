@@ -191,7 +191,10 @@ export function createMap(container) {
           id: 'lava-front', type: 'line', source: 'lavaFront',
           layout: { 'line-cap': 'round' },
           paint: {
-            'line-color': ['interpolate', ['linear'], ['line-progress'],
+            // line-progress vive solo dentro line-gradient: messo in line-color
+            // rende lo stile non valido e MapLibre scarta il layer in silenzio,
+            // che è esattamente il motivo per cui il fronte non si vedeva.
+            'line-gradient': ['interpolate', ['linear'], ['line-progress'],
               0, '#8c1900', 0.55, '#ff4d00', 0.85, '#ffb347', 1, '#fff6d8'],
             'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2.4, 15, 6]
           }

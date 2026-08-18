@@ -1,0 +1,6 @@
+# Normalizza tutto a LF nel repository; ognuno vede i propri a checkout.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary

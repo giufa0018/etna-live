@@ -1,0 +1,19 @@
+# Niente segreti fra i file pubblicati
+.env
+.env.*
+
+# Codice server e configurazione: non vanno serviti come file statici
+api/
+worker.mjs
+dev-proxy.mjs
+wrangler.toml
+vercel.json
+package.json
+node_modules/
+
+# Roba di sviluppo
+.git/
+.claude/
+.gitignore
+.gitattributes
+.assetsignore
